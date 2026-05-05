@@ -363,6 +363,10 @@ Output ONLY valid JSON.`;
   }
 }
 
+app.get('/api/ping', (req, res) => {
+  res.json({ status: "awake" });
+});
+
 app.use(express.static(path.join(__dirname, "../client/build")));
 
 app.get(/(.*)/, (req, res) => {

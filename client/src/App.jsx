@@ -10,6 +10,7 @@ import AnalyticsModal from './components/AnalyticsModal';
 import ChatPage from './pages/ChatPage';
 import VoicePage from './pages/VoicePage';
 import OnboardingPage from './pages/OnboardingPage';
+import { useChat } from './hooks/useChat';
 
 const getUserId = () => {
   let id = localStorage.getItem('ira_userId');
@@ -22,8 +23,7 @@ const getUserId = () => {
 
 function App() {
   const [messages, setMessages] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [apiError, setApiError] = useState(null);
+  const { chatState, setChatState, apiError, setApiError, sendMessage } = useChat();
   const [chatMode, setChatMode] = useState('chat'); // 'chat' | 'voice'
   const [personalityMode, setPersonalityMode] = useState(MODES.FRIENDLY);
   const [scenarioMode, setScenarioMode] = useState('None');
@@ -48,7 +48,21 @@ function App() {
     const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
     });
-    return () => unsubscribeAuth();
+
+    // Server Pre-warming on load
+    fetch('/api/ping').catch(() => {});
+
+    // Background Keep-alive
+    const keepAliveInterval = setInterval(() => {
+      if (!document.hidden) {
+        fetch('/api/ping').catch(() => {});
+      }
+    }, 4 * 60 * 1000); // Every 4 minutes
+
+    return () => {
+      unsubscribeAuth();
+      clearInterval(keepAliveInterval);
+    };
   }, []);
 
   useEffect(() => {
@@ -193,11 +207,8 @@ function App() {
       timestamp: Date.now()
     });
 
-    setIsLoading(true);
-    setApiError(null);
-
     try {
-      const response = await axios.post('/chat', { 
+      const data = await sendMessage({ 
         userId: currentUserId,
         userName: userProfile?.name || 'User',
         aiGender: userProfile?.aiGender || 'Female',
@@ -209,19 +220,15 @@ function App() {
         scenario: scenarioMode
       });
       
-      if (response.data && response.data.success === false) {
-        throw new Error(response.data.reply ? response.data.reply[0] : "API failed");
-      }
-      
-      if (response.data.shouldSpeak && response.data.voiceText) {
+      if (data.shouldSpeak && data.voiceText) {
         // Add a slight realistic delay before voice begins (300ms)
         setTimeout(() => {
-          playVoice(response.data.voiceText, response.data.emotion);
+          playVoice(data.voiceText, data.emotion);
         }, 300);
       }
 
       // Process the multi-message sequence
-      const replies = response.data.reply || [];
+      const replies = data.reply || [];
       for (let i = 0; i < replies.length; i++) {
         const msgText = replies[i];
         
@@ -238,7 +245,7 @@ function App() {
         await push(chatsRef, {
           text: msgText,
           sender: 'ai',
-          emotion: response.data.emotion || 'neutral',
+          emotion: data.emotion || 'neutral',
           type: chatMode === 'voice' ? 'voice' : 'chat',
           timestamp: Date.now()
         });
@@ -250,16 +257,10 @@ function App() {
       }
 
     } catch (error) {
-      console.error('Failed to get response:', error);
-      let errorText = "Sorry, I'm having trouble connecting right now.";
-      if (error.response && error.response.status === 429) {
-        errorText = "Oops! I'm getting too many messages right now. Just give me a few seconds! 😅";
-      } else if (error.message) {
-        errorText = error.message;
-      }
-      setApiError(errorText);
+      console.error('Chat error:', error);
+      // error handling is managed by useChat, which sets apiError
     } finally {
-      setIsLoading(false);
+      setChatState('idle');
     }
   };
 
@@ -290,7 +291,7 @@ function App() {
                 signIn={handleSignIn}
                 signOut={handleSignOut}
                 messages={chatMessages}
-                isLoading={isLoading}
+                chatState={chatState}
                 handleSendMessage={handleSendMessage}
                 userProfile={userProfile}
                 setUserProfile={setUserProfile}

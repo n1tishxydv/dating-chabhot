@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Mic, MicOff, X, Activity } from 'lucide-react';
 import CircularVisualizer from '../components/CircularVisualizer';
 import { audioManager } from '../utils/audioManager';
-import axios from 'axios';
+import { fetchWithRetry } from '../utils/fetchWithRetry';
 import { detectEmotion } from '../utils/emotion';
 import { ref, push } from 'firebase/database';
 import { db } from '../firebase';
@@ -118,17 +118,21 @@ const VoicePage = ({ currentUserId, personalityMode, theme, userProfile }) => {
     });
 
     try {
-      const response = await axios.post('/chat', { 
-        userId: currentUserId,
-        userName: userProfile?.name || 'User',
-        aiGender: userProfile?.aiGender || 'Female',
-        message: text,
-        emotion: emotion,
-        mode: 'voice',
-        personality: personalityMode
+      const data = await fetchWithRetry('/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          userId: currentUserId,
+          userName: userProfile?.name || 'User',
+          aiGender: userProfile?.aiGender || 'Female',
+          message: text,
+          emotion: emotion,
+          mode: 'voice',
+          personality: personalityMode
+        })
       });
       
-      if (response.data.shouldSpeak && response.data.voiceText) {
+      if (data.shouldSpeak && data.voiceText) {
         setStatusText('ira is speaking...');
         setIsSpeaking(true);
         
@@ -139,7 +143,7 @@ const VoicePage = ({ currentUserId, personalityMode, theme, userProfile }) => {
               'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-              text: response.data.voiceText,
+              text: data.voiceText,
               emotion: emotion
             })
           });
@@ -175,7 +179,7 @@ const VoicePage = ({ currentUserId, personalityMode, theme, userProfile }) => {
       }
     } catch (error) {
       console.error('Failed to get response:', error);
-      setStatusText('Connection error.');
+      setStatusText(error.message || 'Connection error.');
     }
   };
 

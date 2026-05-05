@@ -22,7 +22,7 @@ const ChatPage = ({
   signIn,
   signOut,
   messages,
-  isLoading,
+  chatState,
   handleSendMessage,
   userProfile,
   setUserProfile,
@@ -50,14 +50,14 @@ const ChatPage = ({
         userProfile={userProfile}
         setUserProfile={setUserProfile}
       />
-      <ChatContainer messages={messages} isLoading={isLoading} userProfile={userProfile} apiError={apiError} />
+      <ChatContainer messages={messages} chatState={chatState} userProfile={userProfile} apiError={apiError} />
       
       <SuggestionsBar 
         messages={messages} 
-        isTyping={isLoading} 
+        isTyping={chatState !== 'idle'} 
         onSendSuggestion={handleSendMessage} 
       />
-      <InputBar onSendMessage={handleSendMessage} isLoading={isLoading} chatMode={chatMode} />
+      <InputBar onSendMessage={handleSendMessage} isLoading={chatState !== 'idle'} chatMode={chatMode} />
     </div>
   );
 };

@@ -1,12 +1,13 @@
 import { useEffect, useRef } from 'react';
 import MessageBubble from './MessageBubble';
+import TypingIndicator from './TypingIndicator';
 
-const ChatContainer = ({ messages, isLoading, userProfile, apiError }) => {
+const ChatContainer = ({ messages, chatState, userProfile, apiError }) => {
   const bottomRef = useRef(null);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, isLoading]);
+  }, [messages, chatState]);
 
   return (
     <div className="chat-container">
@@ -20,16 +21,8 @@ const ChatContainer = ({ messages, isLoading, userProfile, apiError }) => {
         ))
       )}
       
-      {isLoading && (
-        <div className="message-wrapper ai">
-          <div className="typing-indicator">
-            <span className="typing-text">ira is typing</span>
-            <span className="dot"></span>
-            <span className="dot"></span>
-            <span className="dot"></span>
-          </div>
-        </div>
-      )}
+      
+      <TypingIndicator state={chatState} aiName={userProfile?.aiName || 'ira'} />
       
       {apiError && (
         <div className="error-banner" style={{
