@@ -23,6 +23,7 @@ const getUserId = () => {
 function App() {
   const [messages, setMessages] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [apiError, setApiError] = useState(null);
   const [chatMode, setChatMode] = useState('chat'); // 'chat' | 'voice'
   const [personalityMode, setPersonalityMode] = useState(MODES.FRIENDLY);
   const [scenarioMode, setScenarioMode] = useState('None');
@@ -187,12 +188,13 @@ function App() {
     await push(chatsRef, {
       text: text,
       sender: 'user',
-      emotion: emotion,
+      emotion: emotion || 'neutral',
       type: 'chat',
       timestamp: Date.now()
     });
 
     setIsLoading(true);
+    setApiError(null);
 
     try {
       const response = await axios.post('/chat', { 
@@ -206,6 +208,10 @@ function App() {
         personality: personalityMode,
         scenario: scenarioMode
       });
+      
+      if (response.data && response.data.success === false) {
+        throw new Error(response.data.reply ? response.data.reply[0] : "API failed");
+      }
       
       if (response.data.shouldSpeak && response.data.voiceText) {
         // Add a slight realistic delay before voice begins (300ms)
@@ -232,7 +238,7 @@ function App() {
         await push(chatsRef, {
           text: msgText,
           sender: 'ai',
-          emotion: response.data.emotion,
+          emotion: response.data.emotion || 'neutral',
           type: chatMode === 'voice' ? 'voice' : 'chat',
           timestamp: Date.now()
         });
@@ -248,15 +254,10 @@ function App() {
       let errorText = "Sorry, I'm having trouble connecting right now.";
       if (error.response && error.response.status === 429) {
         errorText = "Oops! I'm getting too many messages right now. Just give me a few seconds! 😅";
+      } else if (error.message) {
+        errorText = error.message;
       }
-      setIsLoading(true);
-      await new Promise(r => setTimeout(r, 1000));
-      await push(chatsRef, {
-        text: errorText,
-        sender: 'ai',
-        type: chatMode === 'voice' ? 'voice' : 'chat',
-        timestamp: Date.now()
-      });
+      setApiError(errorText);
     } finally {
       setIsLoading(false);
     }
@@ -293,6 +294,7 @@ function App() {
                 handleSendMessage={handleSendMessage}
                 userProfile={userProfile}
                 setUserProfile={setUserProfile}
+                apiError={apiError}
               />
             )
           } />

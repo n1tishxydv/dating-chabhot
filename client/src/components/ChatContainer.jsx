@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import MessageBubble from './MessageBubble';
 
-const ChatContainer = ({ messages, isLoading, userProfile }) => {
+const ChatContainer = ({ messages, isLoading, userProfile, apiError }) => {
   const bottomRef = useRef(null);
 
   useEffect(() => {
@@ -28,6 +28,22 @@ const ChatContainer = ({ messages, isLoading, userProfile }) => {
             <span className="dot"></span>
             <span className="dot"></span>
           </div>
+        </div>
+      )}
+      
+      {apiError && (
+        <div className="error-banner" style={{
+          backgroundColor: 'rgba(255, 59, 48, 0.1)',
+          color: '#ff3b30',
+          padding: '10px 15px',
+          borderRadius: '12px',
+          margin: '10px 20px',
+          textAlign: 'center',
+          fontSize: '0.9rem',
+          backdropFilter: 'blur(10px)',
+          border: '1px solid rgba(255, 59, 48, 0.2)'
+        }}>
+          {apiError}
         </div>
       )}
       

@@ -112,7 +112,7 @@ const VoicePage = ({ currentUserId, personalityMode, theme, userProfile }) => {
     await push(chatsRef, {
       text: text,
       sender: 'user',
-      emotion: emotion,
+      emotion: emotion || 'neutral',
       type: 'voice',
       timestamp: Date.now()
     });

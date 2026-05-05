@@ -25,7 +25,8 @@ const ChatPage = ({
   isLoading,
   handleSendMessage,
   userProfile,
-  setUserProfile
+  setUserProfile,
+  apiError
 }) => {
   const navigate = useNavigate();
 
@@ -49,7 +50,7 @@ const ChatPage = ({
         userProfile={userProfile}
         setUserProfile={setUserProfile}
       />
-      <ChatContainer messages={messages} isLoading={isLoading} userProfile={userProfile} />
+      <ChatContainer messages={messages} isLoading={isLoading} userProfile={userProfile} apiError={apiError} />
       
       <SuggestionsBar 
         messages={messages} 
